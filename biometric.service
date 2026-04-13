@@ -1,0 +1,17 @@
+[Unit]
+Description=Biometric Event Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=biometric
+WorkingDirectory=/opt/biometric
+ExecStart=/opt/biometric/venv/bin/python main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
