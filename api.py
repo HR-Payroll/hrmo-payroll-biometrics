@@ -57,9 +57,11 @@ class _Handler(BaseHTTPRequestHandler):
             from zk import ZK
             from zk.exception import ZKError, ZKErrorConnection, ZKNetworkError
 
-            device_id = qs.get("device_id", [None])[0]
-            from_dt   = qs.get("dateFrom", [None])[0]
-            to_dt     = qs.get("dateTo",   [None])[0]
+            device_id  = qs.get("device_id", [None])[0]
+            from_dt    = qs.get("dateFrom", [None])[0]
+            to_dt      = qs.get("dateTo",   [None])[0]
+            store_flag = qs.get("store", ["false"])[0].lower()
+            store_db   = store_flag in ("1", "true", "yes")
 
             if not device_id:
                 self._send_json({"error": "device_id is required"}, status=400)
@@ -104,14 +106,17 @@ class _Handler(BaseHTTPRequestHandler):
                         "punch":     att.punch,
                     })
 
-                inserted, skipped = insert_attendance_bulk(records)
-                self._send_json({
-                    "device_id": device_id,
-                    "fetched":   len(attendances),
-                    "matched":   len(records),
-                    "synced":    inserted,
-                    "skipped":   skipped,
-                })
+                if store_db:
+                    inserted, skipped = insert_attendance_bulk(records)
+                    self._send_json({
+                        "device_id": device_id,
+                        "fetched":   len(attendances),
+                        "matched":   len(records),
+                        "synced":    inserted,
+                        "skipped":   skipped,
+                    })
+                else:
+                    self._send_json(records)
 
             except (ZKNetworkError, ZKErrorConnection) as e:
                 self._send_json({"error": f"device connection failed: {e}"}, status=503)
