@@ -10,6 +10,19 @@ from database import update_device_status
 
 logger = logging.getLogger(__name__)
 
+# Per-device sync coordination: pause signals the worker to disconnect;
+# idle is set by the worker once it is disconnected and waiting.
+_sync_state: dict = {}
+
+
+def get_sync_state(device_id: str) -> dict:
+    if device_id not in _sync_state:
+        _sync_state[device_id] = {
+            "pause": threading.Event(),
+            "idle":  threading.Event(),
+        }
+    return _sync_state[device_id]
+
 
 def device_worker(cfg: dict, db_queue: queue.Queue, shutdown_event: threading.Event):
     """
@@ -24,10 +37,21 @@ def device_worker(cfg: dict, db_queue: queue.Queue, shutdown_event: threading.Ev
     timeout   = cfg["timeout"]
 
     backoff = RECONNECT_BASE_DELAY
+    sync = get_sync_state(device_id)
 
     logger.info("Device worker started: %s (%s:%s)", device_id, ip, port)
 
     while not shutdown_event.is_set():
+        # Pause for sync if requested — signal idle and wait until cleared
+        if sync["pause"].is_set():
+            logger.info("Device %s paused for sync", device_id)
+            sync["idle"].set()
+            while sync["pause"].is_set() and not shutdown_event.is_set():
+                shutdown_event.wait(timeout=0.5)
+            sync["idle"].clear()
+            logger.info("Device %s resuming after sync", device_id)
+            continue
+
         conn = None
         try:
             zk = ZK(ip, port=port, timeout=timeout, password=password, ommit_ping=False)
@@ -38,7 +62,7 @@ def device_worker(cfg: dict, db_queue: queue.Queue, shutdown_event: threading.Ev
             logger.info("Connected to %s (%s:%s)", device_id, ip, port)
 
             for att in conn.live_capture(new_timeout=LIVE_TIMEOUT):
-                if shutdown_event.is_set():
+                if shutdown_event.is_set() or sync["pause"].is_set():
                     conn.end_live_capture = True
                     break
                 if att is None:
@@ -72,6 +96,11 @@ def device_worker(cfg: dict, db_queue: queue.Queue, shutdown_event: threading.Ev
 
         if shutdown_event.is_set():
             break
+
+        # Fast path: if sync was requested, skip backoff and let the pause
+        # check at the top of the loop handle the idle signalling
+        if sync["pause"].is_set():
+            continue
 
         logger.info("Reconnecting %s in %ds…", device_id, backoff)
         shutdown_event.wait(timeout=backoff)

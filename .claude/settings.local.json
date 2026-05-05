@@ -11,7 +11,9 @@
       "Bash(pip3 install:*)",
       "Bash(python3:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Python_Works\\\\biometric\" -Force)",
+      "Bash(Select-Object Name, Mode)"
     ]
   }
 }

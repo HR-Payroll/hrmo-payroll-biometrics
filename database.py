@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_user_id   ON events(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_events_unique ON events(device_id, user_id, timestamp);
 
 CREATE TABLE IF NOT EXISTS device_status (
     device_id  TEXT PRIMARY KEY,
@@ -103,7 +104,7 @@ def update_device_status(device_id: str, status: str):
         logger.error("Failed to update device_status for %s: %s", device_id, e)
 
 
-def query_events(limit=50, user_id=None, from_date=None):
+def query_events(limit=50, user_id=None, from_date=None, to_date=None):
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     params = []
@@ -115,6 +116,9 @@ def query_events(limit=50, user_id=None, from_date=None):
     if from_date:
         clauses.append("timestamp >= ?")
         params.append(from_date)
+    if to_date:
+        clauses.append("timestamp <= ?")
+        params.append(to_date)
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     params.append(limit)
@@ -124,6 +128,29 @@ def query_events(limit=50, user_id=None, from_date=None):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def insert_attendance_bulk(records: list) -> tuple:
+    """Inserts records with INSERT OR IGNORE (deduplicates by device_id+user_id+timestamp).
+    Returns (inserted, skipped)."""
+    conn = sqlite3.connect(DB_PATH)
+    inserted = 0
+    skipped = 0
+    try:
+        for r in records:
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO events (device_id, user_id, timestamp, status, punch) "
+                "VALUES (:device_id, :user_id, :timestamp, :status, :punch)",
+                r,
+            )
+            if cur.rowcount:
+                inserted += 1
+            else:
+                skipped += 1
+        conn.commit()
+    finally:
+        conn.close()
+    return inserted, skipped
 
 
 def query_device_status():
