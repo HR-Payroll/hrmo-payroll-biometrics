@@ -32,11 +32,13 @@ class _Handler(BaseHTTPRequestHandler):
         qs     = parse_qs(parsed.query)
 
         if parsed.path == "/events":
-            limit   = int(qs.get("limit", ["50"])[0])
-            user_id = qs.get("user_id", [None])[0]
-            from_dt = qs.get("dateFrom", qs.get("from", [None]))[0]
-            to_dt   = qs.get("dateTo", [None])[0]
-            rows = query_events(limit=limit, user_id=user_id, from_date=from_dt, to_date=to_dt)
+            limit     = int(qs.get("limit", ["50"])[0])
+            user_id   = qs.get("user_id",   [None])[0]
+            device_id = qs.get("device_id", [None])[0]
+            from_dt   = qs.get("dateFrom", qs.get("from", [None]))[0]
+            to_dt     = qs.get("dateTo",   [None])[0]
+            rows = query_events(limit=limit, user_id=user_id, device_id=device_id,
+                                from_date=from_dt, to_date=to_dt)
             self._send_json(rows)
 
         elif parsed.path == "/devices":
@@ -89,6 +91,7 @@ class _Handler(BaseHTTPRequestHandler):
                 conn = zk.connect()
                 try:
                     attendances = conn.get_attendance()
+                    print(attendances)
                 finally:
                     conn.disconnect()
 
