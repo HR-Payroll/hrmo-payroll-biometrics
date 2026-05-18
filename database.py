@@ -118,10 +118,10 @@ def query_events(limit=None, user_id=None, device_id=None, from_date=None, to_da
         params.append(device_id)
     if from_date:
         clauses.append("timestamp >= ?")
-        params.append(from_date)
+        params.append(from_date[:10] + " 00:00:00")
     if to_date:
         clauses.append("timestamp <= ?")
-        params.append(to_date)
+        params.append(to_date[:10] + " 23:59:59")
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
 
