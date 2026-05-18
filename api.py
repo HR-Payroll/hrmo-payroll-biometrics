@@ -18,11 +18,14 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _send_json(self, data, status=200):
         body = json.dumps(data, default=str).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", len(body))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(body))
+            self.end_headers()
+            self.wfile.write(body)
+        except BrokenPipeError:
+            pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
