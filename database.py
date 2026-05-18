@@ -104,7 +104,7 @@ def update_device_status(device_id: str, status: str):
         logger.error("Failed to update device_status for %s: %s", device_id, e)
 
 
-def query_events(limit=50, user_id=None, device_id=None, from_date=None, to_date=None):
+def query_events(limit=None, user_id=None, device_id=None, from_date=None, to_date=None):
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     params = []
@@ -124,11 +124,14 @@ def query_events(limit=50, user_id=None, device_id=None, from_date=None, to_date
         params.append(to_date)
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-    params.append(limit)
 
-    rows = conn.execute(
-        f"SELECT * FROM events {where} ORDER BY timestamp DESC LIMIT ?", params
-    ).fetchall()
+    if limit is not None:
+        params.append(limit)
+        sql = f"SELECT * FROM events {where} ORDER BY timestamp DESC LIMIT ?"
+    else:
+        sql = f"SELECT * FROM events {where} ORDER BY timestamp DESC"
+
+    rows = conn.execute(sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

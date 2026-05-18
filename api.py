@@ -32,7 +32,8 @@ class _Handler(BaseHTTPRequestHandler):
         qs     = parse_qs(parsed.query)
 
         if parsed.path == "/events":
-            limit     = int(qs.get("limit", ["50"])[0])
+            _limit    = qs.get("limit", [None])[0]
+            limit     = int(_limit) if _limit else None
             user_id   = qs.get("user_id",   [None])[0]
             device_id = qs.get("device_id", [None])[0]
             from_dt   = qs.get("dateFrom", qs.get("from", [None]))[0]
