@@ -11,9 +11,9 @@ RECONNECT_BASE_DELAY = 5    # seconds; doubles each retry, capped at 60s
 LIVE_TIMEOUT         = 10   # seconds; pyzk live_capture timeout
 API_PORT             = 8000
 
-REMOTE_SYNC_ENABLED  = False
-REMOTE_SYNC_URL      = "https://your-app.com/api/biometric/sync"
+REMOTE_SYNC_ENABLED  = True
+REMOTE_SYNC_URL      = "https://jasaan.hrmo-payroll.org/api/biometric/sync"
 REMOTE_SYNC_INTERVAL = 30    # seconds between poll cycles
 REMOTE_SYNC_BATCH    = 100   # max events per POST
-REMOTE_API_KEY       = "change-me"
+REMOTE_API_KEY       = "66SGPESsN0uK4eqBrjElLd7pD5QpSebQ0BwWcZBO1WgvAtEqjs"
 REMOTE_SYNC_TIMEOUT  = 10    # HTTP request timeout in seconds

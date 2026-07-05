@@ -45,7 +45,8 @@ def init_db():
     conn.close()
 
 
-def writer_thread(db_queue: queue.Queue, shutdown_event: threading.Event):
+def writer_thread(db_queue: queue.Queue, shutdown_event: threading.Event,
+                  sync_notify: threading.Event | None = None):
     """Single writer thread — drains db_queue and persists to SQLite."""
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -74,6 +75,8 @@ def writer_thread(db_queue: queue.Queue, shutdown_event: threading.Event):
                     event,
                 )
                 conn.commit()
+                if sync_notify is not None:
+                    sync_notify.set()
                 logger.debug(
                     "Event saved: device=%s user=%s ts=%s",
                     event["device_id"],

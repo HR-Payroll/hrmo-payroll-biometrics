@@ -38,6 +38,7 @@ def main():
     init_db()
 
     shutdown_event = threading.Event()
+    sync_notify    = threading.Event()
     db_queue       = queue.Queue()
 
     def handle_shutdown(sig, frame):
@@ -50,7 +51,7 @@ def main():
     # DB writer — not a daemon so it drains the queue before the process exits
     db_thread = threading.Thread(
         target=writer_thread,
-        args=(db_queue, shutdown_event),
+        args=(db_queue, shutdown_event, sync_notify),
         name="db-writer",
         daemon=False,
     )
@@ -71,7 +72,7 @@ def main():
     if REMOTE_SYNC_ENABLED:
         sync_thread = threading.Thread(
             target=sync_sender,
-            args=(shutdown_event,),
+            args=(shutdown_event, sync_notify),
             name="sync-sender",
             daemon=True,
         )
