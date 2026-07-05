@@ -30,6 +30,11 @@ CREATE TABLE IF NOT EXISTS device_status (
     last_seen  DATETIME,
     status     TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sync_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -163,5 +168,33 @@ def query_device_status():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     rows = conn.execute("SELECT * FROM device_status").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_sync_meta(key: str) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT value FROM sync_meta WHERE key = ?", (key,)).fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def set_sync_meta(key: str, value: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "INSERT INTO sync_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value),
+    )
+    conn.commit()
+    conn.close()
+
+
+def query_unsynced_events(after_id: int, limit: int) -> list:
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT * FROM events WHERE id > ? ORDER BY id ASC LIMIT ?",
+        (after_id, limit),
+    ).fetchall()
     conn.close()
     return [dict(r) for r in rows]

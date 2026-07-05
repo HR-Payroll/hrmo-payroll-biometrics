@@ -5,9 +5,10 @@ import threading
 from logging.handlers import RotatingFileHandler
 
 from api import start_api_server
-from config import DEVICES, LOG_BACKUPS, LOG_MAX_MB, LOG_PATH
+from config import DEVICES, LOG_BACKUPS, LOG_MAX_MB, LOG_PATH, REMOTE_SYNC_ENABLED
 from database import init_db, writer_thread
 from device import device_worker
+from syncer import sync_sender
 
 
 def setup_logging():
@@ -66,6 +67,15 @@ def main():
         )
         t.start()
         device_threads.append(t)
+
+    if REMOTE_SYNC_ENABLED:
+        sync_thread = threading.Thread(
+            target=sync_sender,
+            args=(shutdown_event,),
+            name="sync-sender",
+            daemon=True,
+        )
+        sync_thread.start()
 
     start_api_server(shutdown_event)
 

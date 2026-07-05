@@ -13,7 +13,10 @@
       "Bash(python:*)",
       "Bash(pip install:*)",
       "Bash(Get-ChildItem -Path \"D:\\\\Python_Works\\\\biometric\" -Force)",
-      "Bash(Select-Object Name, Mode)"
+      "Bash(Select-Object Name, Mode)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
