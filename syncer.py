@@ -36,6 +36,7 @@ def _send_batch(events: list, device_status: list, last_id: int) -> bool:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {REMOTE_API_KEY}",
+        "User-Agent": "BiometricSync/1.0",
     }
 
     req = urllib.request.Request(REMOTE_SYNC_URL, data=payload, headers=headers, method="POST")
