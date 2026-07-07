@@ -8,7 +8,6 @@ from config import (
     REMOTE_API_KEY,
     REMOTE_SYNC_BATCH,
     REMOTE_SYNC_ENABLED,
-    REMOTE_SYNC_INTERVAL,
     REMOTE_SYNC_TIMEOUT,
     REMOTE_SYNC_URL,
 )
@@ -72,18 +71,18 @@ def sync_sender(shutdown_event: threading.Event,
     backoff = _BACKOFF_BASE
 
     while not shutdown_event.is_set():
-        if sync_notify is not None:
-            sync_notify.wait(timeout=REMOTE_SYNC_INTERVAL)
-            sync_notify.clear()
-        else:
-            shutdown_event.wait(timeout=REMOTE_SYNC_INTERVAL)
-
         raw_cursor = get_sync_meta(_SYNC_CURSOR_KEY)
         cursor = int(raw_cursor) if raw_cursor else 0
 
         events = query_unsynced_events(cursor, REMOTE_SYNC_BATCH)
+
         if not events:
             backoff = _BACKOFF_BASE
+            if sync_notify is not None:
+                sync_notify.wait()
+                sync_notify.clear()
+            else:
+                shutdown_event.wait(timeout=10)
             continue
 
         last_id = events[-1]["id"]
